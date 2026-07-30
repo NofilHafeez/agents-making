@@ -5,8 +5,7 @@ import requests
 
 
 class GeminiAgent:
-    """Tournament-compatible Gemini agent. Same interface as TrustArenaAgent."""
-
+   
     def __init__(self, api_key=None, name="Gemini Competitor", total_rounds=7):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY", "")
         self.name = name
@@ -38,8 +37,6 @@ class GeminiAgent:
     # ------------------------------------------------------------------
 
     def _calculate_probabilities(self):
-        """Recency-weighted: last 3 rounds count 2x, so recent strategy
-        shifts are picked up faster than a flat lifetime average allows."""
         total = self.coop_count + self.defect_count
         if total == 0:
             return 0.0, 0.0
@@ -65,9 +62,6 @@ class GeminiAgent:
             return
 
         msg = (opponent_message or "").lower()
-
-        # Tighter keyword list - "let's" alone was too generic and flagged
-        # neutral or even hostile sentences ("let's stop this") as promises.
         positive_phrases = [
             "cooperate", "cooperation", "trust", "friend", "together",
             "peace", "let's work together", "let's cooperate",
@@ -222,11 +216,6 @@ Return ONLY valid JSON, no markdown fences, no other text:
 
         raise RuntimeError(f"Gemini call failed after {max_retries} attempts: {last_error}")
 
-    # ------------------------------------------------------------------
-    # Smart fallback (mirrors Groq's _smart_fallback_decision, slightly
-    # more aggressive in the endgame to avoid being out-raced by it)
-    # ------------------------------------------------------------------
-
     def _smart_fallback_decision(self, current_round):
         if current_round == 1:
             return {
@@ -257,8 +246,6 @@ Return ONLY valid JSON, no markdown fences, no other text:
                 "reasoning": "Fallback: retaliating against last defection.",
             }
 
-        # Endgame pre-emption even in fallback mode, so an API outage
-        # near the end of the match doesn't cost us the exchange.
         if current_round >= self.total_rounds - 1:
             p_def, _ = self._calculate_probabilities()
             if p_def > 0.35:
