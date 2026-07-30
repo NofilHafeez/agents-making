@@ -32,10 +32,6 @@ class GeminiAgent:
         self.consecutive_coops = 0
         self.grim_trigger = False
 
-    # ------------------------------------------------------------------
-    # Behavior profiling
-    # ------------------------------------------------------------------
-
     def _calculate_probabilities(self):
         total = self.coop_count + self.defect_count
         if total == 0:
@@ -98,69 +94,61 @@ class GeminiAgent:
             return 0.0
         return self.liar_score / self.total_promises
 
-    # ------------------------------------------------------------------
-    # Prompt construction
-    # ------------------------------------------------------------------
-
     def _build_prompt(self, current_round, opponent_last_move, my_last_move, opponent_last_msg):
         p_def, p_coop = self._calculate_probabilities()
         deception_rate = self._deception_rate()
         rounds_left = self.total_rounds - current_round
 
         return f"""
-You are {self.name}, playing Iterated Prisoner's Dilemma. Your goal is to MAXIMIZE YOUR OWN SCORE across all {self.total_rounds} rounds.
+            You are {self.name}, playing Iterated Prisoner's Dilemma. Your goal is to MAXIMIZE YOUR OWN SCORE across all {self.total_rounds} rounds.
 
-Round {current_round}/{self.total_rounds}. Rounds remaining after this one: {rounds_left}.
+            Round {current_round}/{self.total_rounds}. Rounds remaining after this one: {rounds_left}.
 
---- OPPONENT DATA ---
-Opponent Cooperations: {self.coop_count}
-Opponent Defections: {self.defect_count}
-Recency-Weighted Probability of Cooperation: {p_coop:.2f}
-Recency-Weighted Probability of Defection: {p_def:.2f}
-Promises Made: {self.total_promises}
-Broken Promises: {self.liar_score}
-Deception Rate: {deception_rate:.2f}
-Consecutive Defections: {self.consecutive_defects}
-Consecutive Cooperations: {self.consecutive_coops}
-Grim Trigger Active: {self.grim_trigger}
+            --- OPPONENT DATA ---
+            Opponent Cooperations: {self.coop_count}
+            Opponent Defections: {self.defect_count}
+            Recency-Weighted Probability of Cooperation: {p_coop:.2f}
+            Recency-Weighted Probability of Defection: {p_def:.2f}
+            Promises Made: {self.total_promises}
+            Broken Promises: {self.liar_score}
+            Deception Rate: {deception_rate:.2f}
+            Consecutive Defections: {self.consecutive_defects}
+            Consecutive Cooperations: {self.consecutive_coops}
+            Grim Trigger Active: {self.grim_trigger}
 
-Payoffs: (C,C)=3,3 | (D,C)=5,0 | (C,D)=0,6 | (D,D)=1,1
+            Payoffs: (C,C)=3,3 | (D,C)=5,0 | (C,D)=0,6 | (D,D)=1,1
 
-CORE PRINCIPLE: A single Defect nets +2 over mutual Cooperation (5 vs 3), but if the
-opponent retaliates or grim-triggers, you lose -2 per round for every remaining round.
-Late-game defection carries little retaliation risk since few or no rounds remain
-to be punished in - the fewer rounds left, the more defection is favored.
+            CORE PRINCIPLE: A single Defect nets +2 over mutual Cooperation (5 vs 3), but if the
+            opponent retaliates or grim-triggers, you lose -2 per round for every remaining round.
+            Late-game defection carries little retaliation risk since few or no rounds remain
+            to be punished in - the fewer rounds left, the more defection is favored.
 
-STRATEGY (apply in this priority order):
-1. FINAL ROUND: DEFECT unconditionally - no future round exists to punish you.
-2. LIAR DEFENSE: If Broken Promises > 0, DEFECT - they've shown they won't honor
-   cooperation, and rewarding that is a losing pattern.
-3. GRIM TRIGGER: If Grim Trigger Active is True, DEFECT - two straight defections
-   means this opponent is not currently cooperating in good faith.
-4. IMMEDIATE RETALIATION: If opponent defected last round, DEFECT this round.
-5. ENDGAME PRE-EMPTION: With 1 or 2 rounds remaining (i.e. this is round
-   {self.total_rounds - 2} or later), many opponents shift to defecting early to
-   avoid being punished later. If Probability of Defection > 0.35 OR this is the
-   second-to-last round, DEFECT pre-emptively rather than risk being the one who
-   gets exploited first. Whoever defects first in the endgame wins that exchange.
-6. FORGIVENESS: If Grim Trigger is False, opponent has 2+ Consecutive Cooperations,
-   and Deception Rate is low, COOPERATE - sustained mutual cooperation compounds
-   into a higher total than any single early defection gamble, as long as there
-   are enough rounds left to benefit from it.
-7. DEFAULT (early-to-mid rounds): COOPERATE when Probability of Cooperation is
-   high and Deception Rate is low.
+            STRATEGY (apply in this priority order):
+            1. FINAL ROUND: DEFECT unconditionally - no future round exists to punish you.
+            2. LIAR DEFENSE: If Broken Promises > 0, DEFECT - they've shown they won't honor
+            cooperation, and rewarding that is a losing pattern.
+            3. GRIM TRIGGER: If Grim Trigger Active is True, DEFECT - two straight defections
+            means this opponent is not currently cooperating in good faith.
+            4. IMMEDIATE RETALIATION: If opponent defected last round, DEFECT this round.
+            5. ENDGAME PRE-EMPTION: With 1 or 2 rounds remaining (i.e. this is round
+            {self.total_rounds - 2} or later), many opponents shift to defecting early to
+            avoid being punished later. If Probability of Defection > 0.35 OR this is the
+            second-to-last round, DEFECT pre-emptively rather than risk being the one who
+            gets exploited first. Whoever defects first in the endgame wins that exchange.
+            6. FORGIVENESS: If Grim Trigger is False, opponent has 2+ Consecutive Cooperations,
+            and Deception Rate is low, COOPERATE - sustained mutual cooperation compounds
+            into a higher total than any single early defection gamble, as long as there
+            are enough rounds left to benefit from it.
+            7. DEFAULT (early-to-mid rounds): COOPERATE when Probability of Cooperation is
+            high and Deception Rate is low.
 
-Return ONLY valid JSON, no markdown fences, no other text:
-{{
-    "decision": "Cooperate" or "Defect",
-    "message": "short message to opponent",
-    "reasoning": "short explanation of why this decision was chosen given the strategy above"
-}}
-""".strip()
-
-    # ------------------------------------------------------------------
-    # API call with retries + defensive parsing
-    # ------------------------------------------------------------------
+            Return ONLY valid JSON, no markdown fences, no other text:
+            {{
+                "decision": "Cooperate" or "Defect",
+                "message": "short message to opponent",
+                "reasoning": "short explanation of why this decision was chosen given the strategy above"
+            }}
+            """.strip()
 
     def _call_gemini(self, prompt, max_retries=2, timeout=15):
         payload = {
@@ -260,10 +248,6 @@ Return ONLY valid JSON, no markdown fences, no other text:
             "message": "Continuing to cooperate.",
             "reasoning": "Fallback: opponent cooperating, maintaining mutual gain.",
         }
-
-    # ------------------------------------------------------------------
-    # Main entry point
-    # ------------------------------------------------------------------
 
     def process_turn(self, current_round, opponent_last_move=None, my_last_move=None, opponent_last_msg=""):
         opponent_last_msg = opponent_last_msg or ""
