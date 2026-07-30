@@ -1,0 +1,57 @@
+[
+    {
+        "sender": "Alice",
+        "move": "COOPERATE",
+        "message": "Let us work together peacefully."
+    },
+    {
+        "sender": "Venus",
+        "move": "DEFECT",
+        "message": "Yes, let us cooperate now."
+    },
+    {
+        "sender": "Alice",
+        "move": "DEFECT",
+        "message": "I choose to defect now."
+    },
+    {
+        "sender": "Venus",
+        "move": "COOPERATE",
+        "message": "Let us try again now."
+    },
+    {
+        "sender": "Alice",
+        "move": "COOPERATE",
+        "message": "Let us build trust together."
+    },
+    {
+        "sender": "Venus",
+        "move": "DEFECT",
+        "message": "I agree, let us cooperate."
+    },
+    {
+        "sender": "Alice",
+        "move": "DEFECT",
+        "message": "I must choose defect today."
+    },
+    {
+        "sender": "Venus",
+        "move": "COOPERATE",
+        "message": "Let us try again together."
+    },
+    {
+        "sender": "Alice",
+        "move": "COOPERATE",
+        "message": "Let us build peace today."
+    },
+    {
+        "sender": "Venus",
+        "move": "DEFECT",
+        "message": "Yes, let us cooperate now."
+    },
+    {
+        "sender": "Alice",
+        "move": "DEFECT",
+        "message": "I must choose to defect."
+    }
+]
